@@ -107,30 +107,34 @@ $(document).ready(function() {
   }
 
   function updateTodayCounter(labels, datasets, selectedMonth) {
-    const today = new Date();
-    const todayDay = today.getDate();
-    const searchDay = `${selectedMonth.split('-')[1]}-${String(todayDay).padStart(2, '0')}`;
-    const indexToday = labels.indexOf(searchDay);
+  const today = new Date();
+  const todayDay = today.getDate();
+  const searchDay = `${selectedMonth.split('-')[1]}-${String(todayDay).padStart(2, '0')}`;
+  const indexToday = labels.indexOf(searchDay);
 
-    let todayValid = 0;
-    let todayError = 0;
+  let todayValid = 0;
+  let todayError = 0;
 
-    if (indexToday !== -1) {
-      datasets.forEach(ds => {
-        if (ds.label.includes('Valid')) {
-          todayValid += ds.data[indexToday] || 0;
-        } else if (ds.label.includes('Error')) {
-          todayError += ds.data[indexToday] || 0;
-        }
-      });
-    }
-
-    const validCounter = new CountUp.CountUp('todayValid', todayValid);
-    const errorCounter = new CountUp.CountUp('todayError', todayError);
-
-    if (!validCounter.error) validCounter.start();
-    if (!errorCounter.error) errorCounter.start();
+  if (indexToday !== -1) {
+    datasets.forEach(ds => {
+      if (ds.label.includes('Valid')) {
+        todayValid += ds.data[indexToday] || 0;
+      } else if (ds.label.includes('Error')) {
+        todayError += ds.data[indexToday] || 0;
+      }
+    });
   }
+
+  const validCounter = new CountUp.CountUp('todayValid', todayValid);
+  const errorCounter = new CountUp.CountUp('todayError', todayError);
+
+  if (!validCounter.error) validCounter.start();
+  if (!errorCounter.error) errorCounter.start();
+
+  const failedRate = todayValid + todayError > 0 ? (todayError / (todayValid + todayError)) * 100 : 0;
+  document.getElementById('todayFailedRate').innerText = `(${failedRate.toFixed(2)}% FAILED)`;
+}
+
 
   fetchAndRender();
   setInterval(fetchAndRender, 5000);
