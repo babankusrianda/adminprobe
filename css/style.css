@@ -1,0 +1,15 @@
+body {
+  font-family: Arial, sans-serif;
+  transition: background-color 0.3s, color 0.3s;
+}
+.card {
+  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+.dark-mode {
+  background-color: #121212;
+  color: #ffffff;
+}
+.dark-mode .card {
+  background-color: #1e1e1e;
+  color: #ffffff;
+}
