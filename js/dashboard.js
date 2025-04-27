@@ -37,33 +37,74 @@ $(document).ready(function() {
 
     const selectedMonth = $('#monthSelector').val();
     $('#loadingSpinner').removeClass('d-none');
-    const requests = countries.map(c => 
-  fetch(countryUrls[c], {
-    method: 'GET',
-    headers: {
-      'Accept': 'application/json'
-    }
-  }).then(res => res.json())
-);
+    const requests = countries.map(c => $.get(countryUrls[c]));
 
-Promise.allSettled(requests)
-  .then(results => {
-    const fulfilledResults = results
-      .filter(r => r.status === "fulfilled")
-      .map(r => r.value); // Ambil value (hasil fetch JSON yang berhasil)
+    Promise.all(requests)
+      .then(results => {
+        const labelsSet = new Set();
+        const datasets = [];
 
-    if (fulfilledResults.length === 0) {
-      toastr.error('Failed to fetch counter data');
-      $('#loadingSpinner').addClass('d-none');
-      return;
-    }
+        results.forEach((res, idx) => {
+          const country = countries[idx];
+          const dailyValid = [];
+          const dailyError = [];
 
-    renderChart(fulfilledResults); // Panggil grafik berdasarkan hasil sukses saja
-  })
-  .catch(() => {
-    toastr.error('Unexpected error fetching counter data');
-    $('#loadingSpinner').addClass('d-none');
-  });
+          res.data.forEach(d => {
+            const dateObj = new Date(d.date);
+            const dateMonth = dateObj.toISOString().slice(0, 7);
+            if (dateMonth === selectedMonth) {
+              const day = dateObj.getUTCDate();
+              labelsSet.add(day);
+              dailyValid[day - 1] = d.todayValid || 0;
+              dailyError[day - 1] = d.todayError || 0;
+            }
+          });
+
+          datasets.push({
+            label: `${country.toUpperCase()} Valid`,
+            data: dailyValid,
+            backgroundColor: 'green',
+            stack: country
+          });
+
+          datasets.push({
+            label: `${country.toUpperCase()} Error`,
+            data: dailyError,
+            backgroundColor: 'red',
+            stack: country
+          });
+        });
+
+        const labels = Array.from(labelsSet).sort((a, b) => a - b).map(d => `${selectedMonth.split('-')[1]}-${String(d).padStart(2, '0')}`);
+
+        if (chart) chart.destroy();
+
+        chart = new Chart($('#barChart'), {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: datasets
+          },
+          options: {
+            responsive: true,
+            plugins: { tooltip: { mode: 'index', intersect: false } },
+            scales: {
+              x: { stacked: true },
+              y: { stacked: true, beginAtZero: true }
+            },
+            animation: { duration: 1000 }
+          }
+        });
+
+        updateTodayCounter(labels, datasets, selectedMonth);
+      })
+      .catch(() => {
+        toastr.error('Failed to fetch counter data');
+      })
+      .finally(() => {
+        $('#loadingSpinner').addClass('d-none');
+      });
+  }
 
   function updateTodayCounter(labels, datasets, selectedMonth) {
   const today = new Date();
