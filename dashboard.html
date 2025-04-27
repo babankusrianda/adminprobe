@@ -30,14 +30,13 @@
 
   <canvas id="barChart" height="100"></canvas>
 
-  <div class="text-center mt-4">
-    <h3 class="mb-0">
-      <span class="text-success" id="todayValid">0</span> VALID |
-      <span class="text-danger" id="todayError">0</span> ERROR
-    </h3>
-    <small class="text-muted" id="failRate">(0.00% FAILED)</small>
+  <div id="counters" class="text-center mb-4">
+    <span id="todayValid" class="text-success fs-4">0</span> VALID |
+    <span id="todayError" class="text-danger fs-4">0</span> ERROR
+    <div class="text-muted small">
+      (<span id="todayFailedRate">0.00%</span> FAILED)
+    </div>
   </div>  
-  
 
   <script src="js/dashboard.js"></script>
 </body>
