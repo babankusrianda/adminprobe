@@ -43,9 +43,20 @@ $(document).ready(function() {
         headers: {
           'Accept': 'application/json'
         }
-      }).then(res => res.json())
+      }).then(async res => {
+        if (!res.ok) throw new Error('Network response was not ok');
+    
+        const text = await res.text();
+    
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          console.error('Failed parsing JSON:', text);
+          throw new Error('Invalid JSON');
+        }
+      })
     );
-
+    
     Promise.allSettled(requests)
       .then(results => {
         const fulfilledResults = results
