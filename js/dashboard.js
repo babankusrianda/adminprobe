@@ -34,10 +34,17 @@ $(document).ready(function() {
       window.location.href = 'country.html';
       return;
     }
-
+  
     const selectedMonth = $('#monthSelector').val();
     $('#loadingSpinner').removeClass('d-none');
-    const requests = countries.map(c => fetch(countryUrls[c]).then(res => res.json()));
+    const requests = countries.map(c => 
+      fetch(countryUrls[c], {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        }
+      }).then(res => res.json())
+    );
 
     Promise.allSettled(requests)
       .then(results => {
