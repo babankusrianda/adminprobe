@@ -34,47 +34,17 @@ $(document).ready(function() {
       window.location.href = 'country.html';
       return;
     }
-  
+
     const selectedMonth = $('#monthSelector').val();
     $('#loadingSpinner').removeClass('d-none');
-    const requests = countries.map(c => 
-      fetch(countryUrls[c], {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json'
-        }
-      }).then(async res => {
-        if (!res.ok) throw new Error('Network response was not ok');
-    
-        const text = await res.text();
-    
-        try {
-          return JSON.parse(text);
-        } catch (e) {
-          console.error('Failed parsing JSON:', text);
-          throw new Error('Invalid JSON');
-        }
-      })
-    );
-    
-    Promise.allSettled(requests)
+    const requests = countries.map(c => $.get(countryUrls[c]));
+
+    Promise.all(requests)
       .then(results => {
-        const fulfilledResults = results
-          .filter(r => r.status === "fulfilled")
-          .map(r => r.value);
-
-        if (fulfilledResults.length === 0) {
-          toastr.error('All counter sources failed');
-          $('#loadingSpinner').addClass('d-none');
-          return;
-        }
-
-        updateTodayCounterFromAPI(fulfilledResults);
-
         const labelsSet = new Set();
         const datasets = [];
 
-        fulfilledResults.forEach((res, idx) => {
+        results.forEach((res, idx) => {
           const country = countries[idx];
           const dailyValid = [];
           const dailyError = [];
@@ -126,37 +96,40 @@ $(document).ready(function() {
           }
         });
 
+        updateTodayCounter(labels, datasets, selectedMonth);
       })
       .catch(() => {
-        toastr.error('Unexpected error fetching counter data');
+        toastr.error('Failed to fetch counter data');
       })
       .finally(() => {
         $('#loadingSpinner').addClass('d-none');
       });
   }
 
-  function updateTodayCounterFromAPI(results) {
+  function updateTodayCounter(labels, datasets, selectedMonth) {
+    const today = new Date();
+    const todayDay = today.getDate();
+    const searchDay = `${selectedMonth.split('-')[1]}-${String(todayDay).padStart(2, '0')}`;
+    const indexToday = labels.indexOf(searchDay);
+
     let todayValid = 0;
     let todayError = 0;
 
-    results.forEach(res => {
-      if (res.data && res.data.length > 0) {
-        const firstEntry = res.data[0];
-        todayValid += firstEntry.todayValid || 0;
-        todayError += firstEntry.todayError || 0;
-      }
-    });
+    if (indexToday !== -1) {
+      datasets.forEach(ds => {
+        if (ds.label.includes('Valid')) {
+          todayValid += ds.data[indexToday] || 0;
+        } else if (ds.label.includes('Error')) {
+          todayError += ds.data[indexToday] || 0;
+        }
+      });
+    }
 
     const validCounter = new CountUp.CountUp('todayValid', todayValid);
     const errorCounter = new CountUp.CountUp('todayError', todayError);
 
     if (!validCounter.error) validCounter.start();
     if (!errorCounter.error) errorCounter.start();
-
-    const total = todayValid + todayError;
-    const failRate = total > 0 ? ((todayError / total) * 100).toFixed(2) : "0.00";
-
-    $('#failRate').text(`(${failRate}% FAILED)`);
   }
 
   fetchAndRender();
