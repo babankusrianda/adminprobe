@@ -37,21 +37,31 @@ $(document).ready(function() {
 
     const selectedMonth = $('#monthSelector').val();
     $('#loadingSpinner').removeClass('d-none');
-    const requests = countries.map(c => $.get(countryUrls[c]));
+    const requests = countries.map(c => fetch(countryUrls[c]).then(res => res.json()));
 
     Promise.allSettled(requests)
       .then(results => {
-        updateTodayCounterFromAPI(results); // <<<< PATCH di sini
+        const fulfilledResults = results
+          .filter(r => r.status === "fulfilled")
+          .map(r => r.value);
+
+        if (fulfilledResults.length === 0) {
+          toastr.error('All counter sources failed');
+          $('#loadingSpinner').addClass('d-none');
+          return;
+        }
+
+        updateTodayCounterFromAPI(fulfilledResults);
 
         const labelsSet = new Set();
         const datasets = [];
 
-        results.forEach((res, idx) => {
+        fulfilledResults.forEach((res, idx) => {
           const country = countries[idx];
           const dailyValid = [];
           const dailyError = [];
 
-          res.responseJSON.data.forEach(d => {
+          res.data.forEach(d => {
             const dateObj = new Date(d.date);
             const dateMonth = dateObj.toISOString().slice(0, 7);
             if (dateMonth === selectedMonth) {
@@ -97,23 +107,23 @@ $(document).ready(function() {
             animation: { duration: 1000 }
           }
         });
+
       })
       .catch(() => {
-        toastr.error('Failed to fetch counter data');
+        toastr.error('Unexpected error fetching counter data');
       })
       .finally(() => {
         $('#loadingSpinner').addClass('d-none');
       });
   }
 
-  // === PATCH baru untuk update angka dari API response ===
   function updateTodayCounterFromAPI(results) {
     let todayValid = 0;
     let todayError = 0;
 
     results.forEach(res => {
-      if (res.responseJSON && res.responseJSON.data && res.responseJSON.data.length > 0) {
-        const firstEntry = res.responseJSON.data[0];      
+      if (res.data && res.data.length > 0) {
+        const firstEntry = res.data[0];
         todayValid += firstEntry.todayValid || 0;
         todayError += firstEntry.todayError || 0;
       }
