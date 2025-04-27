@@ -39,7 +39,7 @@ $(document).ready(function() {
     $('#loadingSpinner').removeClass('d-none');
     const requests = countries.map(c => $.get(countryUrls[c]));
 
-    Promise.all(requests)
+    Promise.allSettled(requests)
       .then(results => {
         const labelsSet = new Set();
         const datasets = [];
